@@ -1,16 +1,16 @@
-# Task Management Backend
+# Goldfish Project - Backend
 
 FastAPI backend with Poetry, SQLModel, Supabase, and Alembic.
 
 ## Stack
 
-| Component | Choice |
-|-----------|--------|
-| Backend | FastAPI, Uvicorn, Python 3.11+ |
-| Dependency management | Poetry |
-| ORM & validation | SQLModel (SQLAlchemy + Pydantic) |
-| Database | Supabase (PostgreSQL) |
-| Migrations | Alembic |
+| Component             | Choice                           |
+| --------------------- | -------------------------------- |
+| Backend               | FastAPI, Uvicorn, Python 3.11+   |
+| Dependency management | Poetry                           |
+| ORM & validation      | SQLModel (SQLAlchemy + Pydantic) |
+| Database              | Supabase (PostgreSQL)            |
+| Migrations            | Alembic                          |
 
 ## Setup
 
@@ -73,4 +73,4 @@ backend/
 └── README.md
 ```
 
-# 
+#
