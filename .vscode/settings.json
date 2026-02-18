@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "// Examples - use when opening the repo from the parent folder (task-management-challenge):": "",
+  "// \"python.defaultInterpreterPath\": \"${workspaceFolder}/backend/.venv/bin/python\"": "",
+  "// On Windows with Poetry venv:": "",
+  "// \"python.defaultInterpreterPath\": \"${workspaceFolder}\\.venv\\Scripts\\python.exe\"": ""
+}

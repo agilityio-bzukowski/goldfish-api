@@ -6,4 +6,3 @@ __pycache__/
 # SQLite dev database
 dev.db
 *.db
-.vscode/
