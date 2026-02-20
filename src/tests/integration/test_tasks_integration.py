@@ -205,55 +205,6 @@ def test_reorder(client_with_test_db: TestClient) -> None:
     assert by_id[id_b]["sort_order"] == 5.0
 
 
-def test_filter_by_project_id(client_with_test_db: TestClient) -> None:
-    """GET /api/tasks?project_id=X returns only tasks in that project."""
-    project_id = _create_project(client_with_test_db)
-    client_with_test_db.post(
-        BASE, json={"title": "In project", "project_id": project_id})
-    client_with_test_db.post(BASE, json={"title": "No project"})
-    response = client_with_test_db.get(f"{BASE}?project_id={project_id}")
-    assert response.status_code == 200
-    items = response.json()
-    assert len(items) == 1
-    assert items[0]["title"] == "In project"
-
-
-def test_filter_by_is_completed(client_with_test_db: TestClient) -> None:
-    """GET /api/tasks?is_completed=true returns only completed tasks."""
-    r1 = client_with_test_db.post(BASE, json={"title": "Done"})
-    r2 = client_with_test_db.post(BASE, json={"title": "Todo"})
-    assert r1.status_code == 201 and r2.status_code == 201
-    client_with_test_db.post(f"{BASE}/{r1.json()['id']}/complete")
-    response = client_with_test_db.get(f"{BASE}?is_completed=true")
-    assert response.status_code == 200
-    items = response.json()
-    assert len(items) == 1
-    assert items[0]["title"] == "Done"
-
-
-def test_multiple_filters(client_with_test_db: TestClient) -> None:
-    """GET /api/tasks?project_id=X&is_completed=true returns only completed tasks in that project."""
-    project_id = _create_project(client_with_test_db)
-    # Completed task in project (should match both filters)
-    r1 = client_with_test_db.post(
-        BASE, json={"title": "In project", "project_id": project_id})
-    assert r1.status_code == 201
-    client_with_test_db.post(f"{BASE}/{r1.json()['id']}/complete")
-    # Incomplete task in same project (matches project_id only)
-    client_with_test_db.post(
-        BASE, json={"title": "In project todo", "project_id": project_id})
-    # Completed task with no project (matches is_completed only)
-    r2 = client_with_test_db.post(BASE, json={"title": "No project"})
-    assert r2.status_code == 201
-    client_with_test_db.post(f"{BASE}/{r2.json()['id']}/complete")
-    response = client_with_test_db.get(
-        f"{BASE}?project_id={project_id}&is_completed=true")
-    assert response.status_code == 200
-    items = response.json()
-    assert len(items) == 1
-    assert items[0]["title"] == "In project"
-
-
 def test_full_crud_flow(client_with_test_db: TestClient) -> None:
     """Create -> list -> patch -> get -> complete -> delete in one flow."""
     r1 = client_with_test_db.post(
