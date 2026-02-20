@@ -71,3 +71,7 @@ class TagRead(TagBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+# Alias for use in TaskResponse and other nested responses
+TagResponse = TagRead

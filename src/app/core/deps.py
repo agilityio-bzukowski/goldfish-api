@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.services.projects import ProjectService
+from app.services.reminders import ReminderService
 from app.services.search import SearchService
 from app.services.tags import TagService
 from app.services.tasks import TaskService
@@ -40,8 +41,14 @@ def get_search_service(session: SessionDep) -> SearchService:
     return SearchService(session)
 
 
+def get_reminder_service(session: SessionDep) -> ReminderService:
+    """Provide ReminderService for this request."""
+    return ReminderService(session)
+
+
 TagServiceDep = Annotated[TagService, Depends(get_tag_service)]
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 ProjectServiceDep = Annotated[ProjectService, Depends(get_project_service)]
 ViewServiceDep = Annotated[ViewService, Depends(get_view_service)]
 SearchServiceDep = Annotated[SearchService, Depends(get_search_service)]
+ReminderServiceDep = Annotated[ReminderService, Depends(get_reminder_service)]
