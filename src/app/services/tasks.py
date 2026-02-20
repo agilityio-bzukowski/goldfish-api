@@ -72,7 +72,8 @@ class TaskService(BaseService):
                 priority=data.priority,
                 due_date=data.due_date,
                 due_time=data.due_time,
-                start_date=date.fromisoformat(data.start_date) if data.start_date else date.today(),
+                start_date=date.fromisoformat(
+                    data.start_date) if data.start_date else date.today(),
                 project_id=data.project_id,
                 sort_order=next_order,
             )

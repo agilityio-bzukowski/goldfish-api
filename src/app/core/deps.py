@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.services.projects import ProjectService
+from app.services.search import SearchService
 from app.services.tags import TagService
 from app.services.tasks import TaskService
 from app.services.views import ViewService
@@ -33,7 +34,14 @@ def get_view_service(session: SessionDep) -> ViewService:
     """Provide ViewService for this request."""
     return ViewService(session)
 
+
+def get_search_service(session: SessionDep) -> SearchService:
+    """Provide SearchService for this request."""
+    return SearchService(session)
+
+
 TagServiceDep = Annotated[TagService, Depends(get_tag_service)]
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 ProjectServiceDep = Annotated[ProjectService, Depends(get_project_service)]
 ViewServiceDep = Annotated[ViewService, Depends(get_view_service)]
+SearchServiceDep = Annotated[SearchService, Depends(get_search_service)]
