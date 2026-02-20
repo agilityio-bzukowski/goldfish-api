@@ -14,8 +14,6 @@ HEX_COLOR_PATTERN = re.compile(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
 
 
 class TagBase(BaseModel):
-    """Shared tag fields."""
-
     model_config = ConfigDict(from_attributes=True)
 
     name: str
@@ -37,12 +35,10 @@ class TagBase(BaseModel):
 
 
 class TagCreate(TagBase):
-    """Schema for creating a tag."""
+    pass
 
 
 class TagUpdate(BaseModel):
-    """Schema for updating a tag (all fields optional)."""
-
     name: Optional[str] = None
     color: Optional[str] = None
 
@@ -66,8 +62,10 @@ class TagUpdate(BaseModel):
 
 
 class TagRead(TagBase):
-    """Schema for reading a tag (response)."""
-
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+# Alias for use in TaskResponse and other nested responses
+TagResponse = TagRead

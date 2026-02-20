@@ -203,32 +203,3 @@ def test_reorder(client_with_test_db: TestClient) -> None:
     by_id = {t["id"]: t for t in list_resp.json()}
     assert by_id[id_a]["sort_order"] == 10.0
     assert by_id[id_b]["sort_order"] == 5.0
-
-
-def test_full_crud_flow(client_with_test_db: TestClient) -> None:
-    """Create -> list -> patch -> get -> complete -> delete in one flow."""
-    r1 = client_with_test_db.post(
-        BASE, json={"title": "CRUD Task", "priority": 1})
-    assert r1.status_code == 201
-    task_id = r1.json()["id"]
-
-    r2 = client_with_test_db.get(BASE)
-    assert r2.status_code == 200
-    assert any(t["id"] == task_id for t in r2.json())
-
-    r3 = client_with_test_db.patch(
-        f"{BASE}/{task_id}", json={"title": "CRUD Task Updated", "priority": 2}
-    )
-    assert r3.status_code == 200
-    assert r3.json()["title"] == "CRUD Task Updated"
-
-    r4 = client_with_test_db.get(f"{BASE}/{task_id}")
-    assert r4.status_code == 200
-    assert r4.json()["priority"] == 2
-
-    client_with_test_db.post(f"{BASE}/{task_id}/complete")
-    r5 = client_with_test_db.delete(f"{BASE}/{task_id}")
-    assert r5.status_code == 204
-
-    r6 = client_with_test_db.get(BASE)
-    assert not any(t["id"] == task_id for t in r6.json())

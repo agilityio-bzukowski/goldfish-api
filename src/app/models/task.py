@@ -10,50 +10,13 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.db.schema import PriorityLevel
-
-
-# Re-export / minimal schemas for nested responses (avoid circular imports)
-class TagResponse(BaseModel):
-    """Minimal tag for nesting in task response."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    name: str
-    color: str
-    created_at: datetime
-    updated_at: datetime
-
-
-class ReminderCreate(BaseModel):
-    """Schema for creating a reminder."""
-
-    remind_at: str  # ISO datetime
-    type: str = "absolute"
-    relative_minutes: Optional[int] = None
-
-
-class ReminderResponse(BaseModel):
-    """Schema for reminder in task response."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    task_id: uuid.UUID
-    remind_at: datetime
-    type: str
-    relative_minutes: Optional[int] = None
-    is_fired: bool
-    created_at: datetime
-    updated_at: datetime
-
+from app.models.reminder import ReminderResponse
+from app.models.tag import TagResponse
 
 DUE_TIME_PATTERN = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$")
 
 
 class TaskCreate(BaseModel):
-    """Schema for creating a task."""
-
     title: str
     notes: str = ""
     priority: PriorityLevel = PriorityLevel.NONE
@@ -81,8 +44,6 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    """Schema for updating a task (all fields optional)."""
-
     title: Optional[str] = None
     notes: Optional[str] = None
     priority: Optional[PriorityLevel] = None
@@ -112,15 +73,11 @@ class TaskUpdate(BaseModel):
 
 
 class TaskReorderItem(BaseModel):
-    """Single item for reorder body."""
-
     id: uuid.UUID
     sort_order: float
 
 
 class TaskReorder(BaseModel):
-    """Schema for reorder request."""
-
     items: list[TaskReorderItem]
 
     @model_validator(mode="after")
@@ -131,8 +88,6 @@ class TaskReorder(BaseModel):
 
 
 class TaskResponse(BaseModel):
-    """Schema for task response with nested tags and reminders."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -161,6 +116,4 @@ class TaskResponse(BaseModel):
 
 
 class BulkCompleteResponse(BaseModel):
-    """Response for bulk-complete endpoint."""
-
     completed: int

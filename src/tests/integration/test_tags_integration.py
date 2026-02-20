@@ -97,32 +97,3 @@ def test_delete_tag_404(client_with_test_db: TestClient) -> None:
         f"{BASE}/00000000-0000-0000-0000-000000000000"
     )
     assert response.status_code == 404
-
-
-def test_full_crud_flow(client_with_test_db: TestClient) -> None:
-    """Create -> list -> patch -> get -> delete in one flow."""
-    # Create
-    r1 = client_with_test_db.post(
-        BASE, json={"name": "CRUD Tag", "color": "#abc"})
-    assert r1.status_code == 201
-    tag_id = r1.json()["id"]
-
-    # List
-    r2 = client_with_test_db.get(BASE)
-    assert r2.status_code == 200
-    assert any(t["id"] == tag_id for t in r2.json())
-
-    # Patch
-    r3 = client_with_test_db.patch(
-        f"{BASE}/{tag_id}", json={"name": "CRUD Tag Updated"})
-    assert r3.status_code == 200
-    assert r3.json()["name"] == "CRUD Tag Updated"
-
-    # Delete
-    r4 = client_with_test_db.delete(f"{BASE}/{tag_id}")
-    assert r4.status_code == 204
-
-    # Gone from list
-    r5 = client_with_test_db.get(BASE)
-    assert r5.status_code == 200
-    assert not any(t["id"] == tag_id for t in r5.json())

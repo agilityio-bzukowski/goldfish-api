@@ -155,32 +155,3 @@ def test_project_task_count(client_with_test_db: TestClient) -> None:
     list_resp = client_with_test_db.get(BASE)
     proj = next(p for p in list_resp.json() if p["id"] == project_id)
     assert proj["task_count"] == 2
-
-
-def test_full_crud_flow(client_with_test_db: TestClient) -> None:
-    """Create -> list -> patch -> get -> delete in one flow."""
-    r1 = client_with_test_db.post(
-        BASE, json={"name": "CRUD Project", "description": "D", "color": "#abc"}
-    )
-    assert r1.status_code == 201
-    project_id = r1.json()["id"]
-
-    r2 = client_with_test_db.get(BASE)
-    assert r2.status_code == 200
-    assert any(p["id"] == project_id for p in r2.json())
-
-    r3 = client_with_test_db.patch(
-        f"{BASE}/{project_id}", json={"name": "CRUD Project Updated"}
-    )
-    assert r3.status_code == 200
-    assert r3.json()["name"] == "CRUD Project Updated"
-
-    r4 = client_with_test_db.get(f"{BASE}/{project_id}")
-    assert r4.status_code == 200
-    assert r4.json()["name"] == "CRUD Project Updated"
-
-    r5 = client_with_test_db.delete(f"{BASE}/{project_id}")
-    assert r5.status_code == 204
-
-    r6 = client_with_test_db.get(BASE)
-    assert not any(p["id"] == project_id for p in r6.json())

@@ -1,19 +1,17 @@
 """SQLAlchemy Base, enums, association tables, and declarative models."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from enum import Enum, IntEnum
 from typing import List, Optional
 
-from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, String, Table, Text
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, String, Table, Text, Time
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
-    type_annotation_map = {date: Date()}
-
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
     )
@@ -110,9 +108,9 @@ class Task(Base):
         default=PriorityLevel.NONE,
         index=True,
     )
-    due_date: Mapped[Optional[date]] = mapped_column(nullable=True)
-    due_time: Mapped[Optional[str]] = mapped_column(nullable=True)
-    start_date: Mapped[Optional[date]] = mapped_column(nullable=True)
+    due_date: Mapped[Optional[date]] = mapped_column(Date(), nullable=True)
+    due_time: Mapped[Optional[time]] = mapped_column(Time(), nullable=True)
+    start_date: Mapped[Optional[date]] = mapped_column(Date(), nullable=True)
     project_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("project.id", ondelete="SET NULL"),
