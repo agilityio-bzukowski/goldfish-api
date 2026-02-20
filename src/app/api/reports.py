@@ -11,5 +11,4 @@ async def generate_report(
     body: ReportGenerateRequest,
     reports_service: ReportsServiceDep,
 ) -> ReportGenerateResponse:
-    """Generate an AI report for the given date (or today)."""
     return await reports_service.generate_report(body)

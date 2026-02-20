@@ -20,13 +20,11 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 def list_tasks(
     task_service: TaskServiceDep,
 ) -> list[TaskResponse]:
-    """List tasks with optional filters (non-deleted only)."""
     return task_service.get_tasks()
 
 
 @router.post("/", response_model=TaskResponse, status_code=201)
 def create_task(body: TaskCreate, task_service: TaskServiceDep) -> TaskResponse:
-    """Create task. sort_order auto-calculated; tag_ids linked."""
     return task_service.create_task(body)
 
 
@@ -35,20 +33,17 @@ def bulk_complete(
     task_service: TaskServiceDep,
     project_id: uuid.UUID,
 ) -> BulkCompleteResponse:
-    """Complete all active (incomplete) tasks in the given project."""
     completed = task_service.bulk_complete(project_id)
     return BulkCompleteResponse(completed=completed)
 
 
 @router.patch("/reorder", status_code=204, response_class=Response)
 def reorder_tasks(body: TaskReorder, task_service: TaskServiceDep) -> None:
-    """Batch update sort_order for given task ids."""
     task_service.reorder(body)
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
 def get_task(task_id: uuid.UUID, task_service: TaskServiceDep) -> TaskResponse:
-    """Get single task with tags and reminders."""
     return task_service.get_task(task_id)
 
 
@@ -58,17 +53,14 @@ def update_task(
     body: TaskUpdate,
     task_service: TaskServiceDep,
 ) -> TaskResponse:
-    """Update task. Use tag_ids to replace tag associations."""
     return task_service.update_task(task_id, body)
 
 
 @router.delete("/{task_id}", status_code=204, response_class=Response)
 def delete_task(task_id: uuid.UUID, task_service: TaskServiceDep) -> None:
-    """Soft delete task."""
     task_service.delete_task(task_id)
 
 
 @router.post("/{task_id}/complete", response_model=TaskResponse)
 def complete_task(task_id: uuid.UUID, task_service: TaskServiceDep) -> TaskResponse:
-    """Toggle task completion; sets/clears completed_at."""
     return task_service.complete_toggle(task_id)

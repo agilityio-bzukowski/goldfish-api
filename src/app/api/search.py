@@ -1,5 +1,3 @@
-"""Search API: full-text search over tasks."""
-
 from typing import Optional
 from uuid import UUID
 
@@ -16,7 +14,8 @@ def search(
     search_service: SearchServiceDep,
     q: str = Query("", description="Search term (title and notes)"),
     project_id: Optional[UUID] = Query(None, description="Filter by project"),
-    include_completed: bool = Query(False, description="Include completed tasks"),
+    include_completed: bool = Query(
+        False, description="Include completed tasks"),
 ) -> list[TaskResponse]:
     """Search tasks by query; optionally filter by project and completed status. Max 50 results."""
     tasks = search_service.search(
