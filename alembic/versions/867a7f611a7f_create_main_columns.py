@@ -1,8 +1,8 @@
-"""Consolidate migrations
+"""create main columns
 
-Revision ID: 477950fe996b
+Revision ID: 867a7f611a7f
 Revises: 
-Create Date: 2026-02-20 09:57:11.852310
+Create Date: 2026-02-20 18:31:22.769846
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '477950fe996b'
+revision: str = '867a7f611a7f'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,6 +36,17 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_project_id'), 'project', ['id'], unique=False)
+    op.create_table('settings',
+    sa.Column('id', sa.String(length=64), nullable=False),
+    sa.Column('ai_provider', sa.Enum('OPENAI', 'ANTHROPIC', 'OLLAMA', name='ai_provider_enum'), nullable=False),
+    sa.Column('ai_model', sa.String(), nullable=False),
+    sa.Column('ai_api_key', sa.String(), nullable=True),
+    sa.Column('ai_base_url', sa.String(), nullable=True),
+    sa.Column('ai_report_prompt', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('tag',
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('color', sa.String(), nullable=False),
@@ -47,24 +58,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('name')
     )
     op.create_index(op.f('ix_tag_id'), 'tag', ['id'], unique=False)
-    op.create_table('settings',
-    sa.Column('id', sa.String(length=64), nullable=False),
-    sa.Column('theme', sa.String(), nullable=False),
-    sa.Column('default_project_id', sa.UUID(), nullable=True),
-    sa.Column('sidebar_collapsed', sa.Boolean(), nullable=False),
-    sa.Column('last_sync_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('cloud_user_id', sa.String(), nullable=True),
-    sa.Column('device_id', sa.String(), nullable=False),
-    sa.Column('ai_provider', sa.String(), nullable=False),
-    sa.Column('ai_model', sa.String(), nullable=False),
-    sa.Column('ai_api_key', sa.String(), nullable=True),
-    sa.Column('ai_base_url', sa.String(), nullable=True),
-    sa.Column('ai_report_prompt', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['default_project_id'], ['project.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('task',
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('notes', sa.String(), nullable=True),
@@ -126,9 +119,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_task_priority'), table_name='task')
     op.drop_index(op.f('ix_task_id'), table_name='task')
     op.drop_table('task')
-    op.drop_table('settings')
     op.drop_index(op.f('ix_tag_id'), table_name='tag')
     op.drop_table('tag')
+    op.drop_table('settings')
     op.drop_index(op.f('ix_project_id'), table_name='project')
     op.drop_table('project')
     # ### end Alembic commands ###
