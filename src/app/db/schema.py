@@ -102,7 +102,9 @@ class Task(Base):
     notes: Mapped[Optional[str]] = mapped_column(default="")
     notes_plain: Mapped[Optional[str]] = mapped_column(default="")
     is_completed: Mapped[bool] = mapped_column(default=False, nullable=False)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     priority: Mapped[PriorityLevel] = mapped_column(
         SAEnum(PriorityLevel, name="priority_level"),
         default=PriorityLevel.NONE,
