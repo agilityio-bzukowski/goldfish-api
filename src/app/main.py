@@ -3,8 +3,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import tags
+from app.api import projects, tags, tasks
 from app.core.config import settings
+
+PREFIX = "/api"
 
 app = FastAPI(
     title=settings.app_name,
@@ -24,7 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(tags.router)
+app.include_router(tags.router, prefix=PREFIX)
+app.include_router(tasks.router, prefix=PREFIX)
+app.include_router(projects.router, prefix=PREFIX)
 
 
 @app.get("/health")

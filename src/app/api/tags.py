@@ -32,4 +32,3 @@ def update_tag(tag_id: uuid.UUID, body: TagUpdate, tag_service: TagServiceDep) -
 def delete_tag(tag_id: uuid.UUID, tag_service: TagServiceDep):
     """Soft delete tag."""
     tag_service.delete_tag(tag_id)
-    tag_service.delete_tag(tag_id)

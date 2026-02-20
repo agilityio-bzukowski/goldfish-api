@@ -98,7 +98,7 @@ allow_origins=["http://localhost:1420", "tauri://localhost", "https://tauri.loca
 
 ### Deliverable
 
-All 8 tables defined as SQLAlchemy models + auto-created on startup via `Base.metadata.create_all()`.
+All 7 tables defined as SQLAlchemy models + auto-created on startup via `Base.metadata.create_all()`.
 
 ### Models
 
@@ -110,7 +110,7 @@ name          = Column(String, nullable=False)
 description   = Column(Text, default="")
 color         = Column(String, default="#6366f1")
 icon          = Column(String, default="folder")
-view_mode     = Column(String, default="list")    # CHECK: 'list' or 'board'
+view_mode     = Column(String, default="list")    # 'list' only
 is_archived   = Column(Boolean, default=False)
 sort_order    = Column(Float, nullable=False, default=0.0)
 created_at    = Column(String, nullable=False, default=_utcnow)
@@ -120,19 +120,7 @@ sync_version  = Column(Integer, default=0)
 device_id     = Column(String, nullable=False, default="LOCAL")
 ```
 
-Relationships: `columns` (BoardColumn), `tasks` (Task)
-
-#### `board_columns`
-
-```python
-id              = Column(String, primary_key=True, default=generate_ulid)
-project_id      = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-name            = Column(String, nullable=False)
-color           = Column(String, default="#94a3b8")
-sort_order      = Column(Float, nullable=False, default=0.0)
-is_done_column  = Column(Boolean, default=False)
-# + created_at, updated_at, deleted_at, sync_version, device_id
-```
+Relationships: `tasks` (Task)
 
 #### `tasks`
 
@@ -148,16 +136,14 @@ due_date             = Column(String, nullable=True)    # "YYYY-MM-DD"
 due_time             = Column(String, nullable=True)    # "HH:MM"
 start_date           = Column(String, nullable=True)
 project_id           = Column(String, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
-board_column_id      = Column(String, ForeignKey("board_columns.id", ondelete="SET NULL"), nullable=True)
 parent_task_id       = Column(String, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)
 sort_order           = Column(Float, nullable=False, default=0.0)
-sort_order_board     = Column(Float, nullable=False, default=0.0)
 recurrence_rule      = Column(String, nullable=True)
 recurrence_parent_id = Column(String, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True)
 # + created_at, updated_at, deleted_at, sync_version, device_id
 ```
 
-Relationships: `project`, `board_column`, `subtasks` (self-referential), `tags` (M2M via task_tags), `reminders`
+Relationships: `project`, `subtasks` (self-referential), `tags` (M2M via task_tags), `reminders`
 
 **GOTCHA — Self-referential relationship**: Use `remote_side=[id]` as a **column object list**, NOT a string like `remote_side="Task.id"`. The string form silently breaks.
 ```python
@@ -231,8 +217,8 @@ synced         = Column(Boolean, default=False)
 
 ### Acceptance criteria
 
-- [ ] `Base.metadata.create_all()` creates all 8 tables
-- [ ] All CHECK constraints work (priority 0-4, view_mode list/board, etc.)
+- [ ] `Base.metadata.create_all()` creates all 7 tables
+- [ ] All CHECK constraints work (priority 0-4, view_mode list, etc.)
 - [ ] Foreign key cascades work correctly (delete project → SET NULL on tasks)
 - [ ] Self-referential Task relationship works (subtasks)
 - [ ] M2M Task ↔ Tag via task_tags works
@@ -307,7 +293,6 @@ class TaskCreate(BaseModel):
     due_date: str | None = None
     due_time: str | None = None
     project_id: str | None = None
-    board_column_id: str | None = None
     parent_task_id: str | None = None
     recurrence_rule: str | None = None
     tag_ids: list[str] = []
@@ -319,10 +304,8 @@ class TaskUpdate(BaseModel):
     due_date: str | None = None
     due_time: str | None = None
     project_id: str | None = None
-    board_column_id: str | None = None
     parent_task_id: str | None = None
     sort_order: float | None = None
-    sort_order_board: float | None = None
     recurrence_rule: str | None = None
     tag_ids: list[str] | None = None
 
@@ -365,10 +348,8 @@ class TaskResponse(BaseModel):
     due_time: str | None
     start_date: str | None
     project_id: str | None
-    board_column_id: str | None
     parent_task_id: str | None
     sort_order: float
-    sort_order_board: float
     recurrence_rule: str | None
     recurrence_parent_id: str | None
     created_at: str
@@ -422,18 +403,6 @@ class ProjectResponse(BaseModel):
     updated_at: str
     task_count: int = 0
     model_config = {"from_attributes": True}
-
-class BoardColumnResponse(BaseModel):
-    id: str
-    project_id: str
-    name: str
-    color: str
-    sort_order: float
-    is_done_column: bool
-    created_at: str
-    updated_at: str
-    model_config = {"from_attributes": True}
-```
 
 ### `schemas/tag.py`
 
@@ -523,11 +492,10 @@ for key, value in update_data.items():
 | Method | Path | Status | Notes |
 |--------|------|--------|-------|
 | GET | `/api/projects` | 200 | List non-archived, non-deleted. Include computed `task_count` (non-deleted, non-completed tasks). |
-| POST | `/api/projects` | 201 | Auto-create 3 default board columns: "To Do" (sort 0), "In Progress" (sort 1), "Done" (sort 2, `is_done_column=True`). |
+| POST | `/api/projects` | 201 | Create project. |
 | GET | `/api/projects/:id` | 200/404 | Single project with task count. |
 | PATCH | `/api/projects/:id` | 200/404 | Update name, color, icon, view_mode, is_archived, sort_order. |
 | DELETE | `/api/projects/:id` | 204/404 | Soft delete. **IMPORTANT**: set `project_id = NULL` on all tasks belonging to this project first. |
-| GET | `/api/projects/:id/columns` | 200 | List board columns sorted by sort_order. |
 
 ### GOTCHA — Soft delete does NOT trigger FK cascade
 
@@ -548,7 +516,6 @@ def delete_project(project_id: str, db: Session = Depends(get_db)):
 
 ### Acceptance criteria
 
-- [ ] Project create auto-generates 3 board columns
 - [ ] Task count is computed (not stored)
 - [ ] Delete unassigns tasks (they move to "No project" / Inbox)
 - [ ] Archived projects excluded from default list

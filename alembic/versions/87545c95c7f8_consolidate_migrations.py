@@ -1,8 +1,8 @@
-"""Consolidate migrations
+"""consolidate migrations
 
-Revision ID: 13344ac0b789
+Revision ID: 87545c95c7f8
 Revises: 
-Create Date: 2026-02-18 14:43:17.777528
+Create Date: 2026-02-19 16:03:46.808938
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '13344ac0b789'
+revision: str = '87545c95c7f8'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,7 +28,8 @@ def upgrade() -> None:
     sa.Column('icon', sa.String(), nullable=False),
     sa.Column('view_mode', sa.Enum('LIST', 'BOARD', name='view_mode_enum'), nullable=False),
     sa.Column('is_archived', sa.Boolean(), nullable=False),
-    sa.Column('sort_order', sa.Integer(), nullable=False),
+    sa.Column('sort_order', sa.Float(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
@@ -38,12 +39,32 @@ def upgrade() -> None:
     op.create_table('tag',
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('color', sa.String(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_index(op.f('ix_tag_id'), 'tag', ['id'], unique=False)
+    op.create_table('settings',
+    sa.Column('id', sa.String(length=64), nullable=False),
+    sa.Column('theme', sa.String(), nullable=False),
+    sa.Column('default_project_id', sa.UUID(), nullable=True),
+    sa.Column('sidebar_collapsed', sa.Boolean(), nullable=False),
+    sa.Column('last_sync_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('cloud_user_id', sa.String(), nullable=True),
+    sa.Column('device_id', sa.String(), nullable=False),
+    sa.Column('ai_provider', sa.String(), nullable=False),
+    sa.Column('ai_model', sa.String(), nullable=False),
+    sa.Column('ai_api_key', sa.String(), nullable=True),
+    sa.Column('ai_base_url', sa.String(), nullable=True),
+    sa.Column('ai_report_prompt', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['default_project_id'], ['project.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('task',
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('notes', sa.String(), nullable=True),
@@ -55,31 +76,25 @@ def upgrade() -> None:
     sa.Column('due_time', sa.String(), nullable=True),
     sa.Column('start_date', sa.Date(), nullable=True),
     sa.Column('project_id', sa.UUID(), nullable=True),
-    sa.Column('parent_task_id', sa.UUID(), nullable=True),
-    sa.Column('recurrence_parent_id', sa.UUID(), nullable=True),
-    sa.Column('sort_order', sa.Integer(), nullable=False),
-    sa.Column('recurrence_rule', sa.String(), nullable=True),
+    sa.Column('sort_order', sa.Float(), nullable=False),
+    sa.Column('sort_order_board', sa.Float(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['parent_task_id'], ['task.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['project_id'], ['project.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['recurrence_parent_id'], ['task.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_task_due_completed', 'task', ['due_date', 'is_completed'], unique=False)
-    op.create_index('idx_task_project_sort', 'task', ['project_id', 'sort_order'], unique=False)
     op.create_index(op.f('ix_task_id'), 'task', ['id'], unique=False)
-    op.create_index(op.f('ix_task_parent_task_id'), 'task', ['parent_task_id'], unique=False)
     op.create_index(op.f('ix_task_priority'), 'task', ['priority'], unique=False)
     op.create_index(op.f('ix_task_project_id'), 'task', ['project_id'], unique=False)
-    op.create_index(op.f('ix_task_recurrence_parent_id'), 'task', ['recurrence_parent_id'], unique=False)
     op.create_table('reminder',
     sa.Column('task_id', sa.UUID(), nullable=False),
     sa.Column('remind_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('type', sa.Enum('ABSOLUTE', 'RELATIVE', name='reminder_type'), nullable=False),
     sa.Column('relative_minutes', sa.Integer(), nullable=True),
     sa.Column('is_fired', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
@@ -107,14 +122,11 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_reminder_remind_at'), table_name='reminder')
     op.drop_index(op.f('ix_reminder_id'), table_name='reminder')
     op.drop_table('reminder')
-    op.drop_index(op.f('ix_task_recurrence_parent_id'), table_name='task')
     op.drop_index(op.f('ix_task_project_id'), table_name='task')
     op.drop_index(op.f('ix_task_priority'), table_name='task')
-    op.drop_index(op.f('ix_task_parent_task_id'), table_name='task')
     op.drop_index(op.f('ix_task_id'), table_name='task')
-    op.drop_index('idx_task_project_sort', table_name='task')
-    op.drop_index('idx_task_due_completed', table_name='task')
     op.drop_table('task')
+    op.drop_table('settings')
     op.drop_index(op.f('ix_tag_id'), table_name='tag')
     op.drop_table('tag')
     op.drop_index(op.f('ix_project_id'), table_name='project')
