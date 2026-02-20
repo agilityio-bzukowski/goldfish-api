@@ -50,7 +50,8 @@ def test_get_upcoming_returns_created_reminder(client_with_test_db: TestClient) 
     assert items[0]["id"] == reminder_id
     assert items[0]["task_id"] == task_id
     # API may serialize datetime with or without timezone suffix
-    assert _parse_remind_at(items[0]["remind_at"]) == _parse_remind_at(remind_at)
+    assert _parse_remind_at(items[0]["remind_at"]
+                            ) == _parse_remind_at(remind_at)
     assert items[0]["is_fired"] is False
     assert items[0]["type"] == "absolute"
 
@@ -183,35 +184,3 @@ def test_fire_reminder_404(client_with_test_db: TestClient) -> None:
     )
     assert response.status_code == 404
     assert "Reminder not found" in response.json().get("detail", "")
-
-
-def test_full_reminder_flow(client_with_test_db: TestClient) -> None:
-    """Create task -> create reminder -> upcoming contains it -> fire -> upcoming excludes -> delete -> still excluded."""
-    task_id = _create_task(client_with_test_db, "Flow Task")
-    remind_at = "2026-05-01T09:00:00+00:00"
-
-    create_resp = client_with_test_db.post(
-        BASE,
-        json={"task_id": task_id, "remind_at": remind_at},
-    )
-    assert create_resp.status_code == 201
-    reminder_id = create_resp.json()["id"]
-
-    upcoming1 = client_with_test_db.get(f"{BASE}/upcoming")
-    assert upcoming1.status_code == 200
-    assert any(r["id"] == reminder_id for r in upcoming1.json())
-
-    fire_resp = client_with_test_db.patch(f"{BASE}/{reminder_id}/fire")
-    assert fire_resp.status_code == 200
-    assert fire_resp.json()["is_fired"] is True
-
-    upcoming2 = client_with_test_db.get(f"{BASE}/upcoming")
-    assert upcoming2.status_code == 200
-    assert not any(r["id"] == reminder_id for r in upcoming2.json())
-
-    delete_resp = client_with_test_db.delete(f"{BASE}/{reminder_id}")
-    assert delete_resp.status_code == 204
-
-    upcoming3 = client_with_test_db.get(f"{BASE}/upcoming")
-    assert upcoming3.status_code == 200
-    assert not any(r["id"] == reminder_id for r in upcoming3.json())

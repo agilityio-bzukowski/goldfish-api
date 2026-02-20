@@ -1,5 +1,3 @@
-"""Project service: CRUD with computed task_count and soft delete."""
-
 import uuid
 from datetime import datetime, timezone
 
@@ -12,7 +10,6 @@ from app.services.base import BaseService
 
 class ProjectService(BaseService):
     def get_projects(self) -> list[tuple[Project, int]]:
-        """List non-deleted, non-archived projects with task_count (non-deleted, incomplete)."""
         with self.session as session:
             projects = (
                 session.query(Project)
@@ -38,7 +35,6 @@ class ProjectService(BaseService):
             return result
 
     def get_project(self, project_id: uuid.UUID) -> tuple[Project, int]:
-        """Get single project with task_count. 404 if not found or soft-deleted."""
         with self.session as session:
             project = (
                 session.query(Project)
@@ -103,7 +99,6 @@ class ProjectService(BaseService):
             return project
 
     def delete_project(self, project_id: uuid.UUID) -> None:
-        """Soft delete project; set project_id = None on all its tasks first."""
         with self.session as session:
             project = (
                 session.query(Project)
@@ -113,12 +108,15 @@ class ProjectService(BaseService):
                 )
                 .first()
             )
+
             if not project:
                 raise HTTPException(
                     status_code=404, detail="Project not found")
+
             session.query(Task).filter(
                 Task.project_id == project_id,
                 Task.deleted_at.is_(None),
             ).update({Task.project_id: None})
+
             project.deleted_at = datetime.now(timezone.utc)
             session.commit()

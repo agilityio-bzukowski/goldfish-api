@@ -16,8 +16,6 @@ ViewModeLiteral = Literal["list", "board"]
 
 
 class ProjectCreate(BaseModel):
-    """Schema for creating a project."""
-
     name: str
     description: str = ""
     color: str = "#6366f1"
@@ -40,8 +38,6 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    """Schema for updating a project (all fields optional)."""
-
     name: Optional[str] = None
     description: Optional[str] = None
     color: Optional[str] = None
@@ -70,8 +66,6 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectResponse(BaseModel):
-    """Schema for project response with computed task_count."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID

@@ -17,8 +17,6 @@ DUE_TIME_PATTERN = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$")
 
 
 class TaskCreate(BaseModel):
-    """Schema for creating a task."""
-
     title: str
     notes: str = ""
     priority: PriorityLevel = PriorityLevel.NONE
@@ -46,8 +44,6 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    """Schema for updating a task (all fields optional)."""
-
     title: Optional[str] = None
     notes: Optional[str] = None
     priority: Optional[PriorityLevel] = None
@@ -77,15 +73,11 @@ class TaskUpdate(BaseModel):
 
 
 class TaskReorderItem(BaseModel):
-    """Single item for reorder body."""
-
     id: uuid.UUID
     sort_order: float
 
 
 class TaskReorder(BaseModel):
-    """Schema for reorder request."""
-
     items: list[TaskReorderItem]
 
     @model_validator(mode="after")
@@ -96,8 +88,6 @@ class TaskReorder(BaseModel):
 
 
 class TaskResponse(BaseModel):
-    """Schema for task response with nested tags and reminders."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -126,6 +116,4 @@ class TaskResponse(BaseModel):
 
 
 class BulkCompleteResponse(BaseModel):
-    """Response for bulk-complete endpoint."""
-
     completed: int
