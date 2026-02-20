@@ -1,0 +1,27 @@
+# Git and env
+.git
+.gitignore
+.env
+.env.*
+
+# Python
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+*.db
+
+# IDE and docs (optional: remove if you need docs in image)
+.vscode
+.cursor
+*.md
+!README.md
+
+# Tests (not needed in image)
+src/tests
+tests
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
