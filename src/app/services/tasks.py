@@ -7,9 +7,12 @@ from fastapi import HTTPException
 from sqlalchemy import delete, insert
 from sqlalchemy.orm import joinedload
 
-from app.db.schema import PriorityLevel, Task, task_tag_link
+from app.db.schema import PriorityLevel, Project, Tag, Task, task_tag_link
 from app.models.task import TaskCreate, TaskReorder, TaskUpdate
 from app.services.base import BaseService
+
+PRIORITY_MIN = 0
+PRIORITY_MAX = 4
 
 
 class TaskService(BaseService):
@@ -18,6 +21,34 @@ class TaskService(BaseService):
         if not s:
             return None
         return date.fromisoformat(s)
+
+    def _validate_project_exists(self, session, project_id: uuid.UUID) -> None:
+        project = (
+            session.query(Project)
+            .filter(Project.id == project_id, Project.deleted_at.is_(None))
+            .first()
+        )
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found",
+            )
+
+    def _validate_tag_ids_exist(self, session, tag_ids: list[uuid.UUID]) -> None:
+        if not tag_ids:
+            return
+        found = (
+            session.query(Tag.id)
+            .filter(Tag.id.in_(tag_ids), Tag.deleted_at.is_(None))
+            .all()
+        )
+        found_ids = {r[0] for r in found}
+        missing = set(tag_ids) - found_ids
+        if missing:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Tag(s) not found: {sorted(missing)}",
+            )
 
     def get_tasks(
         self,
@@ -30,15 +61,29 @@ class TaskService(BaseService):
         limit: int | None = None,
         offset: int = 0,
     ) -> list[Task]:
+        if priority is not None and not (PRIORITY_MIN <= priority <= PRIORITY_MAX):
+            raise HTTPException(
+                status_code=422,
+                detail=f"priority must be between {PRIORITY_MIN} and {PRIORITY_MAX}",
+            )
+        due_date_parsed = None
+        if due_date:
+            try:
+                due_date_parsed = self._parse_date(due_date)
+            except ValueError:
+                raise HTTPException(
+                    status_code=422,
+                    detail="due_date must be ISO date (YYYY-MM-DD)",
+                )
         with self.session as session:
             q = session.query(Task).filter(Task.deleted_at.is_(None))
 
+            priority_val = PriorityLevel(priority) if priority is not None else None
             optional_filters = [
                 (Task.project_id, project_id),
                 (Task.is_completed, is_completed),
-                (Task.priority, PriorityLevel(priority)
-                 if priority is not None else None),
-                (Task.due_date, self._parse_date(due_date)),
+                (Task.priority, priority_val),
+                (Task.due_date, due_date_parsed),
             ]
             q = q.filter(
                 *(col == val for col, val in optional_filters if val is not None)
@@ -54,6 +99,10 @@ class TaskService(BaseService):
 
     def create_task(self, data: TaskCreate) -> Task:
         with self.session as session:
+            if data.project_id is not None:
+                self._validate_project_exists(session, data.project_id)
+            self._validate_tag_ids_exist(session, data.tag_ids)
+
             max_row = (
                 session.query(Task.sort_order)
                 .filter(Task.deleted_at.is_(None))
@@ -126,6 +175,11 @@ class TaskService(BaseService):
             update_data = data.model_dump(exclude_unset=True)
             tag_ids = update_data.pop("tag_ids", None)
 
+            project_id = update_data.get("project_id")
+            if project_id is not None:
+                self._validate_project_exists(session, project_id)
+            if tag_ids is not None:
+                self._validate_tag_ids_exist(session, tag_ids)
             if tag_ids is not None:
                 session.execute(
                     delete(task_tag_link).where(
@@ -140,8 +194,19 @@ class TaskService(BaseService):
                     )
             for key, value in update_data.items():
                 if key == "due_date" and value is not None:
-                    value = self._parse_date(value)
+                    try:
+                        value = self._parse_date(value)
+                    except ValueError:
+                        raise HTTPException(
+                            status_code=422,
+                            detail="due_date must be ISO date (YYYY-MM-DD)",
+                        )
                 if key == "priority" and value is not None:
+                    if not (PRIORITY_MIN <= value <= PRIORITY_MAX):
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"priority must be between {PRIORITY_MIN} and {PRIORITY_MAX}",
+                        )
                     value = PriorityLevel(value)
                 setattr(task, key, value)
 
@@ -195,6 +260,7 @@ class TaskService(BaseService):
 
     def bulk_complete(self, project_id: uuid.UUID) -> int:
         with self.session as session:
+            self._validate_project_exists(session, project_id)
             now = datetime.now(timezone.utc)
             q = (
                 session.query(Task)

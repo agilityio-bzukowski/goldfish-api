@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Query, Response
 
 from app.core.deps import TaskServiceDep
 from app.models.task import (
@@ -10,6 +10,8 @@ from app.models.task import (
     TaskCreate,
     TaskResponse,
     TaskReorder,
+    TaskSortBy,
+    TaskSortOrder,
     TaskUpdate,
 )
 
@@ -23,10 +25,16 @@ def list_tasks(
     is_completed: bool | None = None,
     priority: int | None = None,
     due_date: str | None = None,
-    sort_by: str = "sort_order",
-    order: str = "asc",
-    limit: int | None = None,
-    offset: int = 0,
+    sort_by: TaskSortBy = Query(
+        TaskSortBy.SORT_ORDER,
+        description="Column to sort by",
+    ),
+    order: TaskSortOrder = Query(
+        TaskSortOrder.ASC,
+        description="Sort direction",
+    ),
+    limit: int | None = Query(None, ge=1, description="Max items to return"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
 ) -> list[TaskResponse]:
     """List tasks with optional filters (non-deleted only)."""
     return task_service.get_tasks(
@@ -34,8 +42,8 @@ def list_tasks(
         is_completed=is_completed,
         priority=priority,
         due_date=due_date,
-        sort_by=sort_by,
-        order=order,
+        sort_by=sort_by.value,
+        order=order.value,
         limit=limit,
         offset=offset,
     )
