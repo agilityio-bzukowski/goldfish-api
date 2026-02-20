@@ -1,7 +1,7 @@
 """Task service: CRUD, complete toggle, bulk complete, reorder."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import delete, insert
@@ -72,6 +72,7 @@ class TaskService(BaseService):
                 priority=data.priority,
                 due_date=data.due_date,
                 due_time=data.due_time,
+                start_date=date.fromisoformat(data.start_date) if data.start_date else date.today(),
                 project_id=data.project_id,
                 sort_order=next_order,
             )

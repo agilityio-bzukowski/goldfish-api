@@ -57,13 +57,15 @@ def test_get_inbox(client_with_view_fixtures: TestClient) -> None:
 
 
 def test_get_today(client_with_view_fixtures: TestClient) -> None:
-    """GET /api/views/today returns only incomplete tasks with due_date <= today."""
+    """GET /api/views/today returns incomplete tasks with no due_date or due_date <= today."""
     response = client_with_view_fixtures.get(f"{BASE}/today")
     assert response.status_code == 200
     items = response.json()
-    assert len(items) == 1
-    assert items[0]["title"] == "Today task"
-    assert items[0]["is_completed"] is False
+    assert len(items) == 2
+    titles = {t["title"] for t in items}
+    assert titles == {"Inbox only", "Today task"}
+    for t in items:
+        assert t["is_completed"] is False
 
 
 def test_get_completed(client_with_view_fixtures: TestClient) -> None:

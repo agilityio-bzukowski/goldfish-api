@@ -61,6 +61,7 @@ class TaskCreate(BaseModel):
     due_time: Optional[str] = None
     project_id: Optional[uuid.UUID] = None
     tag_ids: list[uuid.UUID] = []
+    start_date: Optional[date] = None
 
     @field_validator("title")
     @classmethod

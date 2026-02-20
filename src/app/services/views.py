@@ -3,6 +3,7 @@
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from app.db.schema import Task
@@ -22,7 +23,7 @@ class ViewService(BaseService):
             return list(q.all())
 
     def get_today_tasks(self) -> list[Task]:
-        """Incomplete tasks with due_date <= today, ordered by priority DESC, due_date, sort_order."""
+        """Incomplete tasks with no due_date or due_date <= today, ordered by priority DESC, due_date, sort_order."""
         today = date.today()
         with self.session as session:
             q = (
@@ -30,8 +31,7 @@ class ViewService(BaseService):
                 .filter(
                     Task.deleted_at.is_(None),
                     Task.is_completed.is_(False),
-                    Task.due_date.isnot(None),
-                    Task.due_date <= today,
+                    or_(Task.due_date.is_(None), Task.due_date <= today),
                 )
                 .order_by(
                     Task.priority.desc(),
