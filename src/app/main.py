@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import projects, reminders, search, tags, tasks, views
+from app.api import projects, reminders, reports, search, settings as settings_api, tags, tasks, views
 from app.core.config import settings
 
 PREFIX = "/api"
@@ -32,6 +32,8 @@ app.include_router(projects.router, prefix=PREFIX)
 app.include_router(views.router, prefix=PREFIX)
 app.include_router(search.router, prefix=PREFIX)
 app.include_router(reminders.router, prefix=PREFIX)
+app.include_router(settings_api.router, prefix=PREFIX)
+app.include_router(reports.router, prefix=PREFIX)
 
 
 @app.get("/health")

@@ -1,17 +1,19 @@
 """SQLAlchemy Base, enums, association tables, and declarative models."""
 
 import uuid
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 from enum import Enum, IntEnum
 from typing import List, Optional
 
-from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, String, Table, Text, Time
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, String, Table, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
+    type_annotation_map = {date: Date()}
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
     )
@@ -41,6 +43,12 @@ class ReminderType(str, Enum):
 class ViewMode(str, Enum):
     LIST = "list"
     BOARD = "board"
+
+
+class AIProvider(str, Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
 
 
 # ASSOCIATION TABLES
@@ -108,9 +116,9 @@ class Task(Base):
         default=PriorityLevel.NONE,
         index=True,
     )
-    due_date: Mapped[Optional[date]] = mapped_column(Date(), nullable=True)
-    due_time: Mapped[Optional[time]] = mapped_column(Time(), nullable=True)
-    start_date: Mapped[Optional[date]] = mapped_column(Date(), nullable=True)
+    due_date: Mapped[Optional[date]] = mapped_column(nullable=True)
+    due_time: Mapped[Optional[str]] = mapped_column(nullable=True)
+    start_date: Mapped[Optional[date]] = mapped_column(nullable=True)
     project_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("project.id", ondelete="SET NULL"),
@@ -163,21 +171,11 @@ class Settings(Base):
 
     id: Mapped[str] = mapped_column(
         String(64), primary_key=True, default="default")
-    theme: Mapped[str] = mapped_column(default="system", nullable=False)
-    default_project_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("project.id", ondelete="SET NULL"),
-        nullable=True,
+    ai_provider: Mapped[AIProvider] = mapped_column(
+        SAEnum(AIProvider, name="ai_provider_enum"),
+        default=AIProvider.OPENAI,
+        nullable=False,
     )
-    sidebar_collapsed: Mapped[bool] = mapped_column(
-        default=False, nullable=False)
-    last_sync_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    cloud_user_id: Mapped[Optional[str]] = mapped_column(nullable=True)
-    device_id: Mapped[str] = mapped_column(default="LOCAL", nullable=False)
-    # AI config
-    ai_provider: Mapped[str] = mapped_column(default="openai", nullable=False)
     ai_model: Mapped[str] = mapped_column(
         default="gpt-4o-mini", nullable=False)
     ai_api_key: Mapped[Optional[str]] = mapped_column(nullable=True)

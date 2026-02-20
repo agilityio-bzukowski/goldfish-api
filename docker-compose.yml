@@ -1,0 +1,27 @@
+# Run the Goldfish API with SQLite (data persisted in ./data).
+# Usage: docker compose up -d
+# API: http://localhost:8000  |  Health: http://localhost:8000/health
+
+services:
+  api:
+    build: .
+    image: goldfish-api:latest
+    container_name: goldfish-api
+    ports:
+      - "8000:8000"
+    environment:
+      # SQLite file in /app/data so the volume persists it
+      DATABASE_URL: "sqlite:///./data/task_management.db"
+      APP_NAME: "Goldfish API"
+      DEBUG: "false"
+    volumes:
+      - sqlite_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  sqlite_data:
