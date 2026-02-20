@@ -1,5 +1,3 @@
-"""Views API: Inbox, Today, Completed."""
-
 from fastapi import APIRouter, Query
 
 from app.core.deps import ViewServiceDep
@@ -10,7 +8,6 @@ router = APIRouter(prefix="/views", tags=["views"])
 
 @router.get("/inbox", response_model=list[TaskResponse])
 def get_inbox(view_service: ViewServiceDep) -> list[TaskResponse]:
-    """All top-level tasks (active + completed), ordered by is_completed, sort_order."""
     return view_service.get_inbox_tasks()
 
 
