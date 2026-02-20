@@ -47,8 +47,8 @@ class ViewMode(str, Enum):
 
 # ASSOCIATION TABLES
 
-task_tag_link = Table(
-    "task_tag_link",
+task_tags = Table(
+    "task_tags",
     Base.metadata,
     Column("task_id", UUID(as_uuid=True), ForeignKey(
         "task.id", ondelete="CASCADE"), primary_key=True),
@@ -91,7 +91,7 @@ class Tag(Base):
 
     tasks: Mapped[List["Task"]] = relationship(
         back_populates="tags",
-        secondary=task_tag_link,
+        secondary=task_tags,
     )
 
 
@@ -131,7 +131,7 @@ class Task(Base):
     project: Mapped[Optional["Project"]] = relationship(back_populates="tasks")
     tags: Mapped[List["Tag"]] = relationship(
         back_populates="tasks",
-        secondary=task_tag_link,
+        secondary=task_tags,
     )
     reminders: Mapped[List["Reminder"]] = relationship(back_populates="task")
 

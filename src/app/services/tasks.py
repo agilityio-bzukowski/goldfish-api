@@ -1,26 +1,18 @@
 """Task service: CRUD, complete toggle, bulk complete, reorder."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import delete, insert
 from sqlalchemy.orm import joinedload
 
-from app.db.schema import PriorityLevel, Project, Tag, Task, task_tag_link
+from app.db.schema import Project, Tag, Task, task_tags
 from app.models.task import TaskCreate, TaskReorder, TaskUpdate
 from app.services.base import BaseService
 
-PRIORITY_MIN = 0
-PRIORITY_MAX = 4
-
 
 class TaskService(BaseService):
-    @staticmethod
-    def _parse_date(s: str | None) -> date | None:
-        if not s:
-            return None
-        return date.fromisoformat(s)
 
     def _validate_project_exists(self, session, project_id: uuid.UUID) -> None:
         project = (
@@ -51,48 +43,10 @@ class TaskService(BaseService):
             )
 
     def get_tasks(
-        self,
-        project_id: uuid.UUID | None = None,
-        is_completed: bool | None = None,
-        priority: int | None = None,
-        due_date: str | None = None,
-        sort_by: str = "sort_order",
-        order: str = "asc",
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[Task]:
-        if priority is not None and not (PRIORITY_MIN <= priority <= PRIORITY_MAX):
-            raise HTTPException(
-                status_code=422,
-                detail=f"priority must be between {PRIORITY_MIN} and {PRIORITY_MAX}",
-            )
-        due_date_parsed = None
-        if due_date:
-            try:
-                due_date_parsed = self._parse_date(due_date)
-            except ValueError:
-                raise HTTPException(
-                    status_code=422,
-                    detail="due_date must be ISO date (YYYY-MM-DD)",
-                )
+            self) -> list[Task]:
         with self.session as session:
             q = session.query(Task).filter(Task.deleted_at.is_(None))
-
-            priority_val = PriorityLevel(priority) if priority is not None else None
-            optional_filters = [
-                (Task.project_id, project_id),
-                (Task.is_completed, is_completed),
-                (Task.priority, priority_val),
-                (Task.due_date, due_date_parsed),
-            ]
-            q = q.filter(
-                *(col == val for col, val in optional_filters if val is not None)
-            )
-
-            order_col = getattr(Task, sort_by, Task.sort_order)
-            q = q.order_by(order_col.desc() if order ==
-                           "desc" else order_col.asc())
-            q = q.offset(offset).limit(limit)
+            q = q.order_by(Task.sort_order.asc())
             q = q.options(joinedload(Task.tags), joinedload(Task.reminders))
 
             return list(q.all())
@@ -111,14 +65,12 @@ class TaskService(BaseService):
             )
             next_order = (max_row[0] + 1.0) if max_row else 0.0
 
-            due_date_parsed = self._parse_date(
-                data.due_date) if data.due_date else None
             task = Task(
                 title=data.title,
                 notes=data.notes or "",
                 notes_plain=data.notes or "",
-                priority=PriorityLevel(data.priority),
-                due_date=due_date_parsed,
+                priority=data.priority,
+                due_date=data.due_date,
                 due_time=data.due_time,
                 project_id=data.project_id,
                 sort_order=next_order,
@@ -127,7 +79,7 @@ class TaskService(BaseService):
             session.flush()
             for tag_id in data.tag_ids:
                 session.execute(
-                    insert(task_tag_link).values(
+                    insert(task_tags).values(
                         task_id=task.id,
                         tag_id=tag_id,
                     )
@@ -174,40 +126,28 @@ class TaskService(BaseService):
 
             update_data = data.model_dump(exclude_unset=True)
             tag_ids = update_data.pop("tag_ids", None)
-
             project_id = update_data.get("project_id")
+
             if project_id is not None:
                 self._validate_project_exists(session, project_id)
+
             if tag_ids is not None:
                 self._validate_tag_ids_exist(session, tag_ids)
+
             if tag_ids is not None:
                 session.execute(
-                    delete(task_tag_link).where(
-                        task_tag_link.c.task_id == task_id)
+                    delete(task_tags).where(
+                        task_tags.c.task_id == task_id)
                 )
                 for tag_id in tag_ids:
                     session.execute(
-                        insert(task_tag_link).values(
+                        insert(task_tags).values(
                             task_id=task_id,
                             tag_id=tag_id,
                         )
                     )
+
             for key, value in update_data.items():
-                if key == "due_date" and value is not None:
-                    try:
-                        value = self._parse_date(value)
-                    except ValueError:
-                        raise HTTPException(
-                            status_code=422,
-                            detail="due_date must be ISO date (YYYY-MM-DD)",
-                        )
-                if key == "priority" and value is not None:
-                    if not (PRIORITY_MIN <= value <= PRIORITY_MAX):
-                        raise HTTPException(
-                            status_code=422,
-                            detail=f"priority must be between {PRIORITY_MIN} and {PRIORITY_MAX}",
-                        )
-                    value = PriorityLevel(value)
                 setattr(task, key, value)
 
             session.commit()
@@ -242,11 +182,14 @@ class TaskService(BaseService):
             )
             if not task:
                 raise HTTPException(status_code=404, detail="Task not found")
+
             task.is_completed = not task.is_completed
             task.completed_at = datetime.now(
                 timezone.utc) if task.is_completed else None
+
             session.commit()
             session.refresh(task)
+
             task = (
                 session.query(Task)
                 .filter(Task.id == task_id)
@@ -261,6 +204,7 @@ class TaskService(BaseService):
     def bulk_complete(self, project_id: uuid.UUID) -> int:
         with self.session as session:
             self._validate_project_exists(session, project_id)
+
             now = datetime.now(timezone.utc)
             q = (
                 session.query(Task)
