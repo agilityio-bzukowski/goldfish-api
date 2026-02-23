@@ -3,8 +3,12 @@ import uuid
 from fastapi import APIRouter, Response
 
 from app.core.deps import ReminderServiceDep
-from app.models.reminder import (ReminderCreateInput, ReminderDelete,
-                                 ReminderFire, ReminderResponse)
+from app.models.reminder import (
+    ReminderCreateInput,
+    ReminderDelete,
+    ReminderFire,
+    ReminderResponse,
+)
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 
@@ -22,11 +26,6 @@ def create_reminder(body: ReminderCreateInput, reminder_service: ReminderService
 @router.delete("/{reminder_id}", status_code=204, response_class=Response)
 def delete_reminder(reminder_id: uuid.UUID, reminder_service: ReminderServiceDep) -> None:
     return reminder_service.delete_reminder(ReminderDelete(id=reminder_id))
-
-
-@router.patch("/{reminder_id}/fire", response_model=ReminderResponse)
-def fire_reminder(reminder_id: uuid.UUID, reminder_service: ReminderServiceDep) -> ReminderResponse:
-    return reminder_service.fire_reminder(ReminderFire(id=reminder_id))
 
 
 @router.patch("/{reminder_id}/fire", response_model=ReminderResponse)
