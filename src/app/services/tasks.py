@@ -52,6 +52,7 @@ class TaskService(BaseService):
     def create_task(self, data: TaskCreate) -> Task:
         if data.project_id is not None:
             self._validate_project_exists(self.session, data.project_id)
+
         self._validate_tag_ids_exist(self.session, data.tag_ids)
 
         max_row = (
@@ -84,7 +85,6 @@ class TaskService(BaseService):
                 )
             )
         self.session.commit()
-        self.session.refresh(task)
         self.session.refresh(task)
         task = (
             self.session.query(Task)
